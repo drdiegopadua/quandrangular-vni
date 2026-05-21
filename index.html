@@ -769,12 +769,29 @@ async function fetchSheet(sheetName) {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
   const res  = await fetch(url);
   const text = await res.text();
-  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+  // Guarda texto bruto para debug
+  window._lastRawResponse = window._lastRawResponse || {};
+  window._lastRawResponse[sheetName] = text.slice(0, 2000);
+  const m = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/);
+  if (!m) throw new Error('Resposta invalida do gviz para aba: ' + sheetName + ' | Inicio: ' + text.slice(0,200));
+  const json = JSON.parse(m[1]);
   return json.table;
 }
 
 // Fetch da classificação usando nome exato da aba
 async function fetchClassificacao() {
+  // Tenta o nome exato e variações sem acento
+  const names = [SHEET_CLASS, 'CLASSIFICACAO', 'classificacao', 'Classificacao', 'CLASSIFICAÇÃO'];
+  for (const name of names) {
+    try {
+      const t = await fetchSheet(name);
+      if (t && t.rows && t.rows.length > 0) {
+        console.log('Aba encontrada:', name, 'rows:', t.rows.length);
+        return t;
+      }
+    } catch(e) { /* tenta próxima */ }
+  }
+  // Se nenhuma funcionou, retorna a última tentativa para mostrar erro
   return await fetchSheet(SHEET_CLASS);
 }
 
@@ -1174,18 +1191,23 @@ function renderJogos(table) {
 // LOAD ALL DATA
 // ============================================
 async function loadAll() {
+  // Carrega classificação e jogos independentemente para isolar erros
   try {
-    const [tableClass, tableJogos] = await Promise.all([
-      fetchClassificacao(),
-      fetchSheet(SHEET_JOGOS)
-    ]);
+    const tableClass = await fetchClassificacao();
     renderClassificacao(tableClass);
+  } catch (err) {
+    console.error('Erro classificacao:', err);
+    const raw = (window._lastRawResponse && Object.values(window._lastRawResponse)[0]) || '';
+    document.getElementById('classTableBody').innerHTML =
+      `<div class="error-box">❌ ERRO AO BUSCAR CLASSIFICAÇÃO\n\n${err.message}\n\nResposta bruta (inicio):\n${raw.slice(0,500)}</div>`;
+  }
+  try {
+    const tableJogos = await fetchSheet(SHEET_JOGOS);
     renderJogos(tableJogos);
   } catch (err) {
-    console.error('Erro ao carregar planilha:', err);
-    const errHtml = `<div class="error-box">❌ Erro ao carregar dados da planilha.\n\n${err.message}\n\nVerifique:\n• A planilha está pública (qualquer pessoa com o link)?\n• Os nomes das abas são exatamente: "jogos" e "classificacao"?</div>`;
-    document.getElementById('classTableBody').innerHTML = errHtml;
-    document.getElementById('jogosList').innerHTML = errHtml;
+    console.error('Erro jogos:', err);
+    document.getElementById('jogosList').innerHTML =
+      `<div class="error-box">❌ ERRO AO BUSCAR JOGOS\n\n${err.message}</div>`;
   }
 }
 
