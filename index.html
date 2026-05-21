@@ -822,63 +822,110 @@ function renderClassificacao(table) {
     return;
   }
 
-  // Get headers from table.cols
+  // A aba CLASSIFICAÇÃO tem estrutura fixa:
+  // Col C=POS, D=EQUIPE, E=PTS, F=J, G=V, H=D, I=SG, J=SP, K=SETS+, L=SETS-, M=PTS+, N=PTS-
+  // No gviz, as colunas são indexadas a partir de 0 conforme a planilha
+  // Vamos procurar as linhas que têm POS numérico (1,2,3,4) na coluna correta
+
+  // Estratégia: varrer todas as linhas e identificar as que têm dados de classificação
+  // Procurar linha de cabeçalho com "POS", "EQUIPE", "PTS" etc
   const cols = table.cols || [];
-  // Build col index map by label (case-insensitive)
+
+  // Debug: log cols
+  console.log('CLASSIFICAÇÃO cols:', cols.map((c,i) => `${i}:${c.label}`));
+
+  // Encontrar índice das colunas pelo label
   const colIdx = {};
   cols.forEach((c, i) => {
-    if (c.label) colIdx[c.label.trim().toUpperCase()] = i;
+    const lbl = (c.label || '').trim().toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos
+    if (lbl) colIdx[lbl] = i;
   });
 
-  // Detect columns — try common names
+  console.log('colIdx:', colIdx);
+
+  // Mapeamento de colunas da planilha (baseado na estrutura real)
+  // POS=C(2), EQUIPE=D(3), PTS=E(4), J=F(5), V=G(6), D=H(7), SG=I(8), SP=J(9), SETS+=K(10), SETS-=L(11), PTS+=M(12), PTS-=N(13)
   function findCol(...names) {
     for (const n of names) {
-      const k = n.toUpperCase();
+      const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if (colIdx[k] !== undefined) return colIdx[k];
     }
-    // fallback: search partial
     for (const n of names) {
-      const k = n.toUpperCase();
+      const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const found = Object.keys(colIdx).find(key => key.includes(k));
-      if (found) return colIdx[found];
+      if (found !== undefined) return colIdx[found];
     }
     return -1;
   }
 
-  const iPOS    = findCol('POS','#','POSIÇÃO','POSICAO');
-  const iEQUIPE = findCol('EQUIPE','TIME','CLUBE','TEAM');
-  const iJ      = findCol('J','JG','JOGOS');
-  const iV      = findCol('V','VIT','VITÓRIAS','VITORIAS');
-  const iD      = findCol('D','DER','DERROTAS');
-  const iSP     = findCol('SP','SETS P','SETS PROL');
-  const iSC     = findCol('SC','SETS C','SETS CONT');
-  const iPTS    = findCol('PTS','PONTOS','PONT','P');
-  const iSD     = findCol('SD','SALDO');
+  let iPOS    = findCol('POS','POSICAO','POSIÇÃO','#');
+  let iEQUIPE = findCol('EQUIPE','TIME','CLUBE','TEAM');
+  let iPTS    = findCol('PTS','PONTOS','PONT');
+  let iJ      = findCol('J','JG','JOGOS');
+  let iV      = findCol('V','VIT','VITORIAS','VITÓRIAS');
+  let iD      = findCol('D','DER','DERROTAS');
+  let iSG     = findCol('SG','SALDO DE SETS','SALDO SETS');
+  let iSP     = findCol('SP','SALDO DE PONTOS','SALDO PONTOS');
+  let iSP2    = findCol('SETS+','SETS GANHOS','SETS FEITOS');
+  let iSC     = findCol('SETS-','SETS PERDIDOS','SETS CONTRA');
+  let iPTS2   = findCol('PTS+','PONTOS FEITOS','PONTOS GANHOS');
+  let iPTS3   = findCol('PTS-','PONTOS CONTRA','PONTOS PERDIDOS');
+
+  console.log('Cols found:', {iPOS,iEQUIPE,iPTS,iJ,iV,iD,iSG,iSP});
+
+  // Filtrar apenas linhas com equipe e posição numérica válida
+  const validRows = [];
+  table.rows.forEach((row) => {
+    const cells = row.c || [];
+    const equipe = iEQUIPE >= 0 ? cellStr(cells[iEQUIPE]) : '';
+    const pos    = iPOS    >= 0 ? cellStr(cells[iPOS])    : '';
+    const posNum = parseInt(pos);
+    if (equipe && equipe.trim() !== '' && posNum >= 1 && posNum <= 20) {
+      validRows.push({ cells, posNum });
+    }
+  });
+
+  // Se não encontrou com critério estrito, tenta só equipe não vazia
+  const rows = validRows.length > 0 ? validRows : table.rows
+    .filter(r => {
+      const cells = r.c || [];
+      const equipe = iEQUIPE >= 0 ? cellStr(cells[iEQUIPE]) : '';
+      return equipe && equipe.trim() !== '';
+    })
+    .map((r, i) => ({ cells: r.c || [], posNum: i + 1 }));
+
+  if (rows.length === 0) {
+    container.innerHTML = '<div class="loading">Aguardando dados da classificação...</div>';
+    return;
+  }
+
+  // Montar colunas visíveis
+  const showCols = [
+    { label: 'J',    idx: iJ    },
+    { label: 'V',    idx: iV    },
+    { label: 'D',    idx: iD    },
+    { label: 'SG',   idx: iSG   },
+    { label: 'SP',   idx: iSP   },
+    { label: 'Sets+',idx: iSP2  },
+    { label: 'Sets-',idx: iSC   },
+    { label: 'Pts+', idx: iPTS2 },
+    { label: 'Pts-', idx: iPTS3 },
+  ].filter(c => c.idx >= 0);
 
   let html = `<div style="overflow-x:auto"><table class="class-table">
     <thead><tr>
       <th>Pos</th>
       <th class="left">Equipe</th>`;
 
-  if (iJ >= 0)   html += '<th>J</th>';
-  if (iV >= 0)   html += '<th>V</th>';
-  if (iD >= 0)   html += '<th>D</th>';
-  if (iSP >= 0)  html += '<th>SP</th>';
-  if (iSC >= 0)  html += '<th>SC</th>';
-  if (iSD >= 0)  html += '<th>SD</th>';
+  showCols.forEach(c => { html += `<th>${c.label}</th>`; });
   if (iPTS >= 0) html += '<th>Pts</th>';
 
   html += '</tr></thead><tbody>';
 
-  let pos = 0;
-  table.rows.forEach((row, idx) => {
-    const cells = row.c || [];
-    const equipe = iEQUIPE >= 0 ? cellStr(cells[iEQUIPE]) : '';
-    if (!equipe) return; // skip empty rows
-
-    pos++;
-    const posVal = iPOS >= 0 ? cellStr(cells[iPOS]) : String(pos);
-    const posNum = parseInt(posVal) || pos;
+  rows.forEach(({ cells, posNum }) => {
+    const equipe = cellStr(cells[iEQUIPE]);
+    const posVal = iPOS >= 0 ? cellStr(cells[iPOS]) : String(posNum);
 
     let posCls = 'pos-other';
     if (posNum === 1) posCls = 'pos-1';
@@ -886,15 +933,12 @@ function renderClassificacao(table) {
     else if (posNum === 3) posCls = 'pos-3';
 
     html += `<tr>
-      <td><span class="pos-badge ${posCls}">${posVal || pos}</span></td>
+      <td><span class="pos-badge ${posCls}">${posVal || posNum}</span></td>
       <td class="team">${equipe}</td>`;
 
-    if (iJ >= 0)   html += `<td>${cellStr(cells[iJ])   || '0'}</td>`;
-    if (iV >= 0)   html += `<td>${cellStr(cells[iV])   || '0'}</td>`;
-    if (iD >= 0)   html += `<td>${cellStr(cells[iD])   || '0'}</td>`;
-    if (iSP >= 0)  html += `<td>${cellStr(cells[iSP])  || '0'}</td>`;
-    if (iSC >= 0)  html += `<td>${cellStr(cells[iSC])  || '0'}</td>`;
-    if (iSD >= 0)  html += `<td>${cellStr(cells[iSD])  || '0'}</td>`;
+    showCols.forEach(c => {
+      html += `<td>${cellStr(cells[c.idx]) || '0'}</td>`;
+    });
     if (iPTS >= 0) html += `<td><strong>${cellStr(cells[iPTS]) || '0'}</strong></td>`;
 
     html += '</tr>';
@@ -914,33 +958,46 @@ function renderJogos(table) {
     return;
   }
 
+  // Estrutura da planilha JOGOS (linha de dados começa na linha 8):
+  // A=JOGO, B=DATA, C=HORÁRIO, D=LOCAL, E=EQUIPE A, F=EQUIPE B
+  // G=Set1 Pts A, H=Set1 Pts B, I=Set1 Venc
+  // J=Set2 Pts A, K=Set2 Pts B, L=Set2 Venc
+  // M=TB Pts A,   N=TB Pts B,   O=TB Venc
+  // P=SETS A, Q=SETS B, R=VENCEDOR, S=OBS
+
   const cols = table.cols || [];
   const colIdx = {};
   cols.forEach((c, i) => {
-    if (c.label) colIdx[c.label.trim().toUpperCase()] = i;
+    const lbl = (c.label || '').trim().toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    if (lbl) colIdx[lbl] = i;
   });
+
+  console.log('JOGOS cols:', cols.map((c,i) => `${i}:${c.label}`));
 
   function findCol(...names) {
     for (const n of names) {
-      const k = n.toUpperCase();
+      const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if (colIdx[k] !== undefined) return colIdx[k];
     }
     for (const n of names) {
-      const k = n.toUpperCase();
+      const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const found = Object.keys(colIdx).find(key => key.includes(k));
-      if (found) return colIdx[found];
+      if (found !== undefined) return colIdx[found];
     }
     return -1;
   }
 
-  const iHORARIO  = findCol('HORÁRIO','HORARIO','HORA','TIME');
-  const iRODADA   = findCol('RODADA','JOGO','ROUND','PARTIDA');
-  const iEQ1      = findCol('EQUIPE 1','EQUIPE1','TIME 1','TIME1','CASA','MANDANTE');
-  const iEQ2      = findCol('EQUIPE 2','EQUIPE2','TIME 2','TIME2','VISITANTE','FORA');
-  const iSCORE1   = findCol('PLACAR 1','PLACAR1','SETS 1','SETS1','S1','SCORE1');
-  const iSCORE2   = findCol('PLACAR 2','PLACAR2','SETS 2','SETS2','S2','SCORE2');
-  const iSTATUS   = findCol('STATUS','RESULTADO','SITUAÇÃO','SITUACAO');
+  const iJOGO    = findCol('JOGO','RODADA','#');
+  const iHORARIO = findCol('HORARIO','HORÁRIO','HORA');
+  const iEQ1     = findCol('EQUIPE A','EQUIPE1','TIME A','TIME1','MANDANTE');
+  const iEQ2     = findCol('EQUIPE B','EQUIPE2','TIME B','TIME2','VISITANTE');
+  const iSETS_A  = findCol('SETS A','SETSA');
+  const iSETS_B  = findCol('SETS B','SETSB');
+  const iVENC    = findCol('VENCEDOR','WINNER','RESULTADO');
 
+  // Pontuação por set: G,J,M = pts A; H,K,N = pts B
+  // Vamos montar o placar como "G-H / J-K"
   let html = '';
   let hasRows = false;
 
@@ -951,36 +1008,43 @@ function renderJogos(table) {
     if (!eq1 && !eq2) return;
     hasRows = true;
 
+    const jogo    = iJOGO    >= 0 ? cellStr(cells[iJOGO])    : '';
     const horario = iHORARIO >= 0 ? cellStr(cells[iHORARIO]) : '';
-    const rodada  = iRODADA  >= 0 ? cellStr(cells[iRODADA])  : '';
-    const sc1     = iSCORE1  >= 0 ? cellStr(cells[iSCORE1])  : '-';
-    const sc2     = iSCORE2  >= 0 ? cellStr(cells[iSCORE2])  : '-';
-    const status  = iSTATUS  >= 0 ? cellStr(cells[iSTATUS])  : '';
+    const setsA   = iSETS_A  >= 0 ? cellStr(cells[iSETS_A])  : '';
+    const setsB   = iSETS_B  >= 0 ? cellStr(cells[iSETS_B])  : '';
+    const vencedor= iVENC    >= 0 ? cellStr(cells[iVENC])    : '';
 
-    // Determine status class
-    let statusCls  = 'status-scheduled';
-    let statusText = status || 'A REALIZAR';
-    const st = status.toUpperCase();
-    if (st.includes('FINAL') || st.includes('ENCERR') || st.includes('TERMINA') || st === 'FIM' || st === 'OK') {
-      statusCls = 'status-done';
-      statusText = statusText || 'FINALIZADO';
-    } else if (st.includes('VIVO') || st.includes('AO VIVO') || st.includes('LIVE') || st === 'EM JOGO') {
-      statusCls = 'status-live';
-      statusText = '🔴 AO VIVO';
+    // Formatar horário (pode vir como número decimal do Excel)
+    let horarioFmt = horario;
+    const hNum = parseFloat(horario);
+    if (!isNaN(hNum) && hNum > 0 && hNum < 1) {
+      const totalMin = Math.round(hNum * 24 * 60);
+      const h = Math.floor(totalMin / 60);
+      const m = totalMin % 60;
+      horarioFmt = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    } else if (horario && horario.includes(':')) {
+      horarioFmt = horario;
     }
 
-    // Score display
-    const showScore = (sc1 && sc1 !== '-' && sc1 !== '' && sc1 !== '0' && sc1 !== '0') ||
-                      (sc2 && sc2 !== '-' && sc2 !== '');
-    const scoreHtml = showScore
-      ? `<div class="game-score"><span class="score">${sc1}</span><span class="sep">×</span><span class="score">${sc2}</span></div>`
+    // Status
+    let statusCls  = 'status-scheduled';
+    let statusText = 'A REALIZAR';
+    if (vencedor && vencedor.trim() !== '') {
+      statusCls  = 'status-done';
+      statusText = `✓ ${vencedor}`;
+    }
+
+    // Placar de sets
+    const hasSets = (setsA !== '' && setsA !== '0') || (setsB !== '' && setsB !== '0');
+    const scoreHtml = hasSets
+      ? `<div class="game-score"><span class="score">${setsA||0}</span><span class="sep">×</span><span class="score">${setsB||0}</span></div>`
       : `<div class="game-score" style="color:var(--muted)"><span style="font-size:1.2rem;letter-spacing:6px;">VS</span></div>`;
 
     html += `
     <div class="game-card">
       <div class="game-info">
-        ${rodada ? `<span class="game-round">${rodada}</span>` : ''}
-        <span class="game-hour">${horario || '—:—'}</span>
+        ${jogo ? `<span class="game-round">Jogo ${jogo}</span>` : ''}
+        <span class="game-hour">${horarioFmt || '—:—'}</span>
       </div>
       <div class="game-team left">${eq1 || '—'}</div>
       ${scoreHtml}
