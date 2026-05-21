@@ -864,146 +864,30 @@ function renderClassificacao(table) {
     return;
   }
 
-  // ── Descobre indices dinamicamente pelas labels das colunas ──────
-  const cols = table.cols || [];
-  const normalize = s => String(s||'').trim().toUpperCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/[^A-Z0-9+\-]/g,' ').replace(/\s+/g,' ').trim();
+  // Estrutura CONFIRMADA pelo diagnostico:
+  // row[2]=POS (1,2,3,4)  row[3]=EQUIPE  row[4]=PTS
+  // row[5]=J  row[6]=V  row[7]=D  row[8]=SG  row[9]=SP
+  // row[10]=Sets+  row[11]=Sets-  row[12]=Pts+  row[13]=Pts-
+  const iPOS=2, iEQUIPE=3, iPTS=4, iJ=5, iV=6, iD=7, iSG=8, iSP=9, iSP2=10, iSC=11, iPTS2=12, iPTS3=13;
 
-  // Mapeia label -> indice
-  const labelMap = {};
-  cols.forEach((c, i) => { labelMap[normalize(c.label)] = i; });
-
-  function findIdx(...candidates) {
-    for (const cand of candidates) {
-      const k = normalize(cand);
-      if (labelMap[k] !== undefined) return labelMap[k];
-      // busca parcial
-      const found = Object.keys(labelMap).find(key => key.includes(k) || k.includes(key));
-      if (found !== undefined) return labelMap[found];
-    }
-    return -1;
-  }
-
-  let iPOS    = findIdx('POS','POSICAO','#');
-  let iEQUIPE = findIdx('EQUIPE','TIME','CLUBE','TEAM');
-  let iPTS    = findIdx('PTS','PONTOS','CLASSIFICACAO GERAL');
-  let iJ      = findIdx('J','JOGOS','JG');
-  let iV      = findIdx('V','VITORIAS','VITS');
-  let iD      = findIdx('D','DERROTAS','DERR');
-  let iSG     = findIdx('SG','SALDO GAMES','SALDO DE GAMES','SALDO G');
-  let iSP     = findIdx('SP','SALDO PONTOS','SALDO DE PONTOS','SALDO P');
-  let iSP2    = findIdx('SETS +','SETS+','S+');
-  let iSC     = findIdx('SETS -','SETS-','S-');
-  let iPTS2   = findIdx('PTS +','PTS+');
-  let iPTS3   = findIdx('PTS -','PTS-');
-
-  // ── Fallback: se nao achou pelo label, tenta detectar pela posicao dos dados ──
-  // Estrategia: varre as linhas e tenta identificar qual coluna tem POS (1-4),
-  // qual tem nome de equipe, etc.
-  const allRows = table.rows;
-
-  // Se nao achou EQUIPE pelo label, busca a coluna que tem textos como nomes de times
-  if (iEQUIPE < 0 || iPOS < 0) {
-    // Detecta automaticamente: qual col tem numeros 1-4 (POS) e qual tem texto (EQUIPE)
-    const colTypes = {};
-    allRows.forEach(row => {
-      (row.c || []).forEach((cell, ci) => {
-        if (!cell) return;
-        const v = cell.v ?? cell.f;
-        if (v == null) return;
-        if (!colTypes[ci]) colTypes[ci] = { nums: 0, texts: 0, vals: [] };
-        if (typeof v === 'number' || (!isNaN(Number(v)) && String(v).trim() !== '')) {
-          colTypes[ci].nums++;
-        } else if (typeof v === 'string' && v.trim().length > 1) {
-          colTypes[ci].texts++;
-          colTypes[ci].vals.push(v.trim());
-        }
-      });
-    });
-
-    if (iPOS < 0) {
-      // Coluna POS: tem numeros 1,2,3,4 entre os valores
-      for (const [ci, info] of Object.entries(colTypes)) {
-        const hasPos = allRows.some(row => {
-          const c = row.c || [];
-          const v = c[ci] ? (c[ci].v ?? c[ci].f) : null;
-          return v !== null && [1,2,3,4].includes(Number(v));
-        });
-        if (hasPos && info.nums >= 2) { iPOS = Number(ci); break; }
-      }
-    }
-
-    if (iEQUIPE < 0) {
-      // Coluna EQUIPE: tem textos longos (nomes de times)
-      let bestTextCol = -1, bestScore = 0;
-      for (const [ci, info] of Object.entries(colTypes)) {
-        if (Number(ci) === iPOS) continue;
-        const score = info.texts * 2 + info.vals.filter(v => v.length > 3).length;
-        if (score > bestScore) { bestScore = score; bestTextCol = Number(ci); }
-      }
-      iEQUIPE = bestTextCol;
-    }
-
-    // PTS: coluna numerica logo apos EQUIPE com valores maiores (6, 3, 0...)
-    if (iPTS < 0 && iEQUIPE >= 0) {
-      const numCols = Object.entries(colTypes)
-        .filter(([ci]) => Number(ci) !== iPOS && Number(ci) !== iEQUIPE && colTypes[ci].nums >= 2)
-        .map(([ci]) => Number(ci)).sort((a,b)=>a-b);
-      if (numCols.length > 0) iPTS = numCols[0];
-      if (numCols.length > 1) iJ   = numCols[1];
-      if (numCols.length > 2) iV   = numCols[2];
-      if (numCols.length > 3) iD   = numCols[3];
-      if (numCols.length > 4) iSG  = numCols[4];
-      if (numCols.length > 5) iSP  = numCols[5];
-      if (numCols.length > 6) iSP2 = numCols[6];
-      if (numCols.length > 7) iSC  = numCols[7];
-      if (numCols.length > 8) iPTS2= numCols[8];
-      if (numCols.length > 9) iPTS3= numCols[9];
-    }
-  }
-
-  // ── Filtra as linhas de dados ──────────────────────────────────
   const dataRows = [];
-  for (const row of allRows) {
+  for (const row of table.rows) {
     const c = row.c || [];
-    if (iPOS >= 0) {
-      const posV = c[iPOS] ? (c[iPOS].v ?? c[iPOS].f) : null;
-      const posN = Number(posV);
-      if (posN >= 1 && posN <= 10) {
-        const eqV = iEQUIPE >= 0 && c[iEQUIPE] ? String(c[iEQUIPE].f ?? c[iEQUIPE].v ?? '').trim() : '';
-        if (eqV !== '' && isNaN(Number(eqV))) {
-          dataRows.push({ c, posN });
-        }
-      }
-    } else if (iEQUIPE >= 0) {
-      // sem coluna POS detectada, usa equipe
-      const eqV = c[iEQUIPE] ? String(c[iEQUIPE].f ?? c[iEQUIPE].v ?? '').trim() : '';
-      if (eqV !== '' && isNaN(Number(eqV)) && eqV.length < 80) {
-        dataRows.push({ c, posN: dataRows.length + 1 });
-      }
+    const posV = c[iPOS] ? (c[iPOS].v ?? c[iPOS].f) : null;
+    const posN = Number(posV);
+    const eqV  = c[iEQUIPE] ? String(c[iEQUIPE].f ?? c[iEQUIPE].v ?? '').trim() : '';
+    if (posN >= 1 && posN <= 10 && eqV !== '' && isNaN(Number(eqV))) {
+      dataRows.push({ c, posN });
     }
   }
 
   if (dataRows.length === 0) {
-    // Mostra diagnostico para debug
-    let diag = '<div style="font:11px monospace;color:#aaa;padding:16px;overflow-x:auto">';
-    diag += `<b style="color:#f5a623">Nenhuma linha encontrada. iPOS=${iPOS} iEQUIPE=${iEQUIPE} iPTS=${iPTS}</b><br><br>`;
-    diag += `<b style="color:#f5a623">Total rows: ${allRows.length} | Total cols: ${cols.length}</b><br><br>`;
-    diag += '<b style="color:#f5a623">Cols:</b><br>';
-    cols.forEach((c,i) => { diag += `[${i}] "${c.label}" (${c.type})<br>`; });
-    diag += '<br><b style="color:#f5a623">Rows:</b><br>';
-    allRows.slice(0,8).forEach((r,ri) => {
-      const vals = (r.c||[]).map((c,ci)=>`[${ci}]=${c?(c.f??c.v??'null'):'null'}`).join(' | ');
-      diag += `row${ri}: ${vals}<br>`;
-    });
-    diag += '</div>';
-    container.innerHTML = diag;
+    container.innerHTML = '<div class="loading">Aguardando dados da classificacao...</div>';
     return;
   }
 
   const val = (cells, idx) => {
-    if (idx < 0 || !cells[idx]) return '-';
+    if (!cells[idx]) return '-';
     return String(cells[idx].f ?? cells[idx].v ?? '-');
   };
 
@@ -1019,7 +903,7 @@ function renderClassificacao(table) {
     </tr></thead><tbody>`;
 
   dataRows.forEach(({ c, posN }) => {
-    const equipe = iEQUIPE >= 0 ? String(c[iEQUIPE]?.f ?? c[iEQUIPE]?.v ?? '').trim() : '?';
+    const equipe = String(c[iEQUIPE]?.f ?? c[iEQUIPE]?.v ?? '').trim();
     const posCls = posN===1?'pos-1':posN===2?'pos-2':posN===3?'pos-3':'pos-other';
     html += `<tr>
       <td><span class="pos-badge ${posCls}">${posN}</span></td>
