@@ -855,32 +855,32 @@ function renderClassificacao(table) {
   // Estrutura de índices (col C=0, D=1, E=2, F=3, G=4, H=5, I=6, J=7, K=8, L=9, M=10, N=11, OBS=12):
   // [0]=POS [1]=EQUIPE [2]=PTS [3]=J [4]=V [5]=D [6]=SG [7]=SP [8]=SETS+ [9]=SETS- [10]=PTS+ [11]=PTS-
 
-  // DIAGNÓSTICO TEMPORÁRIO
-  let diag = '<div style="font:11px monospace;color:#aaa;padding:12px;overflow-x:auto">';
-  diag += `<b style="color:#f5a623">Total rows: ${table.rows.length} | Total cols: ${(table.cols||[]).length}</b><br><br>`;
-  diag += '<b style="color:#f5a623">Cols:</b><br>';
-  (table.cols||[]).forEach((c,i) => { diag += `[${i}] "${c.label}" (${c.type})<br>`; });
-  diag += '<br><b style="color:#f5a623">Rows (primeiras 6):</b><br>';
-  table.rows.slice(0,6).forEach((r,ri) => {
-    const vals = (r.c||[]).map((c,ci)=>`[${ci}]=${c?(c.f??c.v??'∅'):'∅'}`).join(' ');
-    diag += `row${ri}: ${vals}<br>`;
-  });
-  diag += '</div>';
-  container.innerHTML = diag;
-  return; // REMOVER APÓS DEBUG
+  // Estrutura real da planilha (detectada via diagnóstico):
+  // [0] = EQUIPE (texto com nome do time)
+  // [1] = col vazia
+  // [2] = col vazia
+  // [3] = PTS (Classificação Geral)
+  // [4] = J (jogos)
+  // [5] = V (vitórias)
+  // [6] = D (derrotas)
+  // [7] = SG (saldo de games)
+  // [8] = SP (saldo de pontos)
+  // [9] = Sets+
+  // [10] = Sets-
+  // [11] = Pts+
+  // [12] = Pts-
 
-  // Varre TODAS as linhas buscando as que têm POS numérico (1–4) na col 0
-  // e EQUIPE (texto não-numérico) na col 1
-  // Ignora linha de critérios (col 0 vazio ou texto)
+  // Varre TODAS as linhas buscando as que têm EQUIPE (texto não-numérico) na col 0
+  // e PTS (número) na col 3
   const dataRows = [];
+  let posCounter = 1;
   for (const row of table.rows) {
     const c = row.c || [];
-    const posV = c[0] ? String(c[0].v ?? '').trim() : '';
-    const eqV  = c[1] ? String(c[1].v ?? c[1].f ?? '').trim() : '';
-    const posN = parseInt(posV);
-    // Só aceita linha se POS for número entre 1 e 10 E equipe for texto não-numérico curto (nome de time)
-    if (posN >= 1 && posN <= 10 && eqV !== '' && isNaN(Number(eqV)) && eqV.length < 50) {
-      dataRows.push({ c, posN });
+    const eqV  = c[0] ? String(c[0].v ?? c[0].f ?? '').trim() : '';
+    const ptsV = c[3] ? (c[3].v ?? c[3].f ?? '') : '';
+    // Só aceita linha se EQUIPE for texto não-numérico e PTS for número
+    if (eqV !== '' && isNaN(Number(eqV)) && eqV.length < 80 && ptsV !== '') {
+      dataRows.push({ c, posN: posCounter++ });
     }
   }
 
@@ -889,8 +889,8 @@ function renderClassificacao(table) {
     return;
   }
 
-  // Índices fixos baseados na estrutura da planilha
-  const iEQUIPE=1, iPTS=2, iJ=3, iV=4, iD=5, iSG=6, iSP=7, iSP2=8, iSC=9, iPTS2=10, iPTS3=11;
+  // Índices fixos baseados na estrutura real da planilha
+  const iEQUIPE=0, iPTS=3, iJ=4, iV=5, iD=6, iSG=7, iSP=8, iSP2=9, iSC=10, iPTS2=11, iPTS3=12;
 
   const val = (cells, idx) => {
     const cell = cells[idx];
@@ -910,7 +910,7 @@ function renderClassificacao(table) {
     </tr></thead><tbody>`;
 
   dataRows.forEach(({ c, posN }) => {
-    const equipe = String(c[1]?.f ?? c[1]?.v ?? '').trim();
+    const equipe = String(c[0]?.f ?? c[0]?.v ?? '').trim();
     let posCls = posN===1?'pos-1':posN===2?'pos-2':posN===3?'pos-3':'pos-other';
 
     html += `<tr>
