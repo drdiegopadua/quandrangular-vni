@@ -843,136 +843,124 @@ function renderClassificacao(table) {
     return;
   }
 
-  // A aba CLASSIFICAÇÃO tem estrutura fixa:
-  // Col C=POS, D=EQUIPE, E=PTS, F=J, G=V, H=D, I=SG, J=SP, K=SETS+, L=SETS-, M=PTS+, N=PTS-
-  // No gviz, as colunas são indexadas a partir de 0 conforme a planilha
-  // Vamos procurar as linhas que têm POS numérico (1,2,3,4) na coluna correta
-
-  // Estratégia: varrer todas as linhas e identificar as que têm dados de classificação
-  // Procurar linha de cabeçalho com "POS", "EQUIPE", "PTS" etc
+  // Debug: mostra todas as colunas e primeiras linhas no console
   const cols = table.cols || [];
+  console.log('CLASS cols:', cols.map((c,i) => `${i}:"${c.label}"`));
+  table.rows.slice(0,5).forEach((r,i) => {
+    console.log(`row${i}:`, (r.c||[]).map(c => c ? (c.f||c.v||'') : ''));
+  });
 
-  // Debug: log cols
-  console.log('CLASSIFICAÇÃO cols:', cols.map((c,i) => `${i}:${c.label}`));
+  // DIAGNÓSTICO VISUAL: mostra estrutura real do gviz
+  let diagHtml = '<div style="font-family:monospace;font-size:11px;color:#aaa;padding:16px;overflow-x:auto">';
+  diagHtml += '<b style="color:#f5a623">COLUNAS GVIZ:</b><br>';
+  cols.forEach((c,i) => { diagHtml += `[${i}] label="${c.label}" type="${c.type}"<br>`; });
+  diagHtml += '<br><b style="color:#f5a623">PRIMEIRAS 3 LINHAS:</b><br>';
+  table.rows.slice(0,3).forEach((r,ri) => {
+    const vals = (r.c||[]).map((c,ci)=>`[${ci}]=${c?(c.f??c.v??'∅'):'∅'}`).join('  ');
+    diagHtml += `row${ri}: ${vals}<br>`;
+  });
+  diagHtml += '</div>';
+  container.innerHTML = diagHtml;
+  // FIM DIAGNÓSTICO — remover após confirmar estrutura
+  // Varremos todas as linhas e todas as colunas até achar a estrutura correta
+  let iPOS=-1, iEQUIPE=-1, iPTS=-1, iJ=-1, iV=-1, iD=-1, iSG=-1, iSP=-1, iSP2=-1, iSC=-1, iPTS2=-1, iPTS3=-1;
+  const dataRows = [];
 
-  // Encontrar índice das colunas pelo label
+  // 1º: tenta achar pelo label das colunas
   const colIdx = {};
   cols.forEach((c, i) => {
     const lbl = (c.label || '').trim().toUpperCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g,''); // remove acentos
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'');
     if (lbl) colIdx[lbl] = i;
+    console.log(`  col[${i}] label="${c.label}" → key="${lbl}"`);
   });
 
-  console.log('colIdx:', colIdx);
+  const find = (exact) => colIdx[exact.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')] ?? -1;
+  iPOS   = find('POS');
+  iEQUIPE= find('EQUIPE');
+  iPTS   = find('PTS');
+  iJ     = find('J');
+  iV     = find('V');
+  iD     = find('D');
+  iSG    = find('SG');
+  iSP    = find('SP');
+  iSP2   = find('SETS+');
+  iSC    = find('SETS-');
+  iPTS2  = find('PTS+');
+  iPTS3  = find('PTS-');
 
-  // Estrutura FIXA da aba "classificacao" (conforme planilha):
-  // gviz retorna colunas a partir da col C da planilha (col A e B ficam fora do range ou vazias)
-  // Linha de dados: POS=col C(idx 0 no gviz), EQUIPE=D(1), PTS=E(2), J=F(3), V=G(4), D=H(5),
-  //                 SG=I(6), SP=J(7), SETS+=K(8), SETS-=L(9), PTS+=M(10), PTS-=N(11)
-  // Mas o gviz pode incluir colunas A e B como vazias, então usamos os labels para mapear.
+  console.log('Por label:', {iPOS,iEQUIPE,iPTS,iJ,iV,iD});
 
-  // Primeiro tenta pelos labels; se não achar, usa fallback por posição
-  function findColExact(...names) {
-    for (const n of names) {
-      const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      if (colIdx[k] !== undefined) return colIdx[k];
-    }
-    return -1;
-  }
-
-  // Índices pela label exata
-  let iPOS    = findColExact('POS','POSICAO','POSIÇÃO');
-  let iEQUIPE = findColExact('EQUIPE','TIME','CLUBE');
-  let iPTS    = findColExact('PTS','PONTOS');
-  let iJ      = findColExact('J','JG','JOGOS');
-  let iV      = findColExact('V','VIT','VITORIAS','VITORIAS');
-  let iD      = findColExact('D','DER','DERROTAS');
-  let iSG     = findColExact('SG');
-  let iSP     = findColExact('SP');
-  let iSP2    = findColExact('SETS+');
-  let iSC     = findColExact('SETS-');
-  let iPTS2   = findColExact('PTS+');
-  let iPTS3   = findColExact('PTS-');
-
-  // Fallback: se labels não foram encontrados, assume estrutura fixa da planilha
-  // O gviz da aba classificacao normalmente começa do col C da planilha
-  // Detecta o offset verificando onde começam os dados numéricos de POS
+  // 2º: se não achou POS/EQUIPE, detecta automaticamente procurando
+  //     a linha onde alguma célula = "1" e a vizinha é texto não-numérico
   if (iPOS < 0 || iEQUIPE < 0) {
-    // Tenta detectar automaticamente a coluna POS procurando valor 1,2,3,4
-    const nCols = cols.length;
-    outer: for (let ci = 0; ci < nCols; ci++) {
-      for (const row of table.rows) {
-        const v = cellStr((row.c || [])[ci]);
-        if (v === '1') {
-          // Verifica se coluna seguinte tem texto de equipe
-          const nextV = cellStr((row.c || [])[ci + 1]);
-          if (nextV && isNaN(Number(nextV))) {
-            iPOS    = ci;
-            iEQUIPE = ci + 1;
-            iPTS    = ci + 2;
-            iJ      = ci + 3;
-            iV      = ci + 4;
-            iD      = ci + 5;
-            iSG     = ci + 6;
-            iSP     = ci + 7;
-            iSP2    = ci + 8;
-            iSC     = ci + 9;
-            iPTS2   = ci + 10;
-            iPTS3   = ci + 11;
-            break outer;
-          }
+    for (const row of table.rows) {
+      const cells = row.c || [];
+      for (let ci = 0; ci < cells.length - 1; ci++) {
+        const v = String((cells[ci]?.v) ?? '').trim();
+        const next = String((cells[ci+1]?.v) ?? '').trim();
+        if (v === '1' && next !== '' && isNaN(Number(next))) {
+          // Encontrou: assume estrutura a partir daqui
+          iPOS   = ci;
+          iEQUIPE= ci+1;
+          iPTS   = ci+2;
+          iJ     = ci+3;
+          iV     = ci+4;
+          iD     = ci+5;
+          iSG    = ci+6;
+          iSP    = ci+7;
+          iSP2   = ci+8;
+          iSC    = ci+9;
+          iPTS2  = ci+10;
+          iPTS3  = ci+11;
+          console.log('Auto-detectado offset em col', ci);
+          break;
         }
       }
+      if (iPOS >= 0) break;
     }
   }
 
-  console.log('Cols found:', {iPOS,iEQUIPE,iPTS,iJ,iV,iD,iSG,iSP});
-
-  // Filtrar apenas linhas com equipe e posição numérica válida (1 a 20)
-  const validRows = [];
-  table.rows.forEach((row) => {
+  // Filtra linhas com POS numérico (1–20) e EQUIPE não vazia
+  for (const row of table.rows) {
     const cells = row.c || [];
-    const equipe = iEQUIPE >= 0 ? cellStr(cells[iEQUIPE]) : '';
-    const pos    = iPOS    >= 0 ? cellStr(cells[iPOS])    : '';
-    const posNum = parseInt(pos);
-    if (equipe && equipe.trim() !== '' && posNum >= 1 && posNum <= 20) {
-      validRows.push({ cells, posNum });
+    const rawPos = String((cells[iPOS]?.v) ?? '').trim();
+    const rawEq  = String((cells[iEQUIPE]?.v) ?? (cells[iEQUIPE]?.f) ?? '').trim();
+    const posNum = parseInt(rawPos);
+    if (posNum >= 1 && posNum <= 20 && rawEq !== '') {
+      dataRows.push({ cells, posNum });
     }
-  });
+  }
 
-  if (validRows.length === 0) {
+  if (dataRows.length === 0) {
     container.innerHTML = '<div class="loading">Aguardando dados da classificação...</div>';
     return;
   }
 
-  const rows = validRows;
-
-  // Montar colunas visíveis
+  // Colunas visíveis (só inclui as que foram encontradas)
   const showCols = [
-    { label: 'J',    idx: iJ    },
-    { label: 'V',    idx: iV    },
-    { label: 'D',    idx: iD    },
-    { label: 'SG',   idx: iSG   },
-    { label: 'SP',   idx: iSP   },
-    { label: 'Sets+',idx: iSP2  },
-    { label: 'Sets-',idx: iSC   },
-    { label: 'Pts+', idx: iPTS2 },
-    { label: 'Pts-', idx: iPTS3 },
+    { label:'J',     idx:iJ    },
+    { label:'V',     idx:iV    },
+    { label:'D',     idx:iD    },
+    { label:'SG',    idx:iSG   },
+    { label:'SP',    idx:iSP   },
+    { label:'Sets+', idx:iSP2  },
+    { label:'Sets-', idx:iSC   },
+    { label:'Pts+',  idx:iPTS2 },
+    { label:'Pts-',  idx:iPTS3 },
   ].filter(c => c.idx >= 0);
 
   let html = `<div style="overflow-x:auto"><table class="class-table">
     <thead><tr>
       <th>Pos</th>
       <th class="left">Equipe</th>`;
-
   showCols.forEach(c => { html += `<th>${c.label}</th>`; });
   if (iPTS >= 0) html += '<th>Pts</th>';
-
   html += '</tr></thead><tbody>';
 
-  rows.forEach(({ cells, posNum }) => {
-    const equipe = cellStr(cells[iEQUIPE]);
-    const posVal = iPOS >= 0 ? cellStr(cells[iPOS]) : String(posNum);
+  dataRows.forEach(({ cells, posNum }) => {
+    const equipe = String((cells[iEQUIPE]?.f) ?? (cells[iEQUIPE]?.v) ?? '').trim();
+    const posVal = String((cells[iPOS]?.v) ?? posNum).trim();
 
     let posCls = 'pos-other';
     if (posNum === 1) posCls = 'pos-1';
@@ -980,13 +968,20 @@ function renderClassificacao(table) {
     else if (posNum === 3) posCls = 'pos-3';
 
     html += `<tr>
-      <td><span class="pos-badge ${posCls}">${posVal || posNum}</span></td>
+      <td><span class="pos-badge ${posCls}">${posVal}</span></td>
       <td class="team">${equipe}</td>`;
 
     showCols.forEach(c => {
-      html += `<td>${cellStr(cells[c.idx]) || '0'}</td>`;
+      const cell = cells[c.idx];
+      const val  = cell ? String(cell.f ?? cell.v ?? '0') : '0';
+      html += `<td>${val}</td>`;
     });
-    if (iPTS >= 0) html += `<td><strong>${cellStr(cells[iPTS]) || '0'}</strong></td>`;
+
+    if (iPTS >= 0) {
+      const cell = cells[iPTS];
+      const val  = cell ? String(cell.f ?? cell.v ?? '0') : '0';
+      html += `<td><strong>${val}</strong></td>`;
+    }
 
     html += '</tr>';
   });
