@@ -474,7 +474,7 @@ table.class-table tbody tr:hover td{background:rgba(255,255,255,0.02);}
   grid-template-columns:100px 1fr auto 1fr 140px;
   align-items:center;
   gap:20px;
-  padding:24px 24px;
+  padding:20px 24px;
   background:var(--card);
   border:1px solid var(--border);
   border-radius:14px;
@@ -522,6 +522,27 @@ table.class-table tbody tr:hover td{background:rgba(255,255,255,0.02);}
 }
 .game-score .score{font-size:3rem;letter-spacing:1px;}
 .game-score .sep{font-size:1.5rem;opacity:0.5;}
+
+.game-center{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  min-width:120px;
+}
+.sets-detail{
+  font-family:var(--C);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:1px;
+  color:var(--muted);
+  text-align:center;
+  white-space:nowrap;
+}
+.sets-detail em{
+  font-style:normal;
+  color:var(--accent2);
+}
 
 .game-status{
   justify-self:end;
@@ -1036,8 +1057,9 @@ function renderJogos(table) {
   const iSETS_B_F  = iSETS_B  >= 0 ? iSETS_B  : 16;
   const iVENC_F    = iVENC    >= 0 ? iVENC    : 17;
 
-  // Pontuação por set: G,J,M = pts A; H,K,N = pts B
-  // Vamos montar o placar como "G-H / J-K"
+  // Índices dos pontos individuais por set (estrutura fixa):
+  // G=Set1 Pts A(6), H=Set1 Pts B(7), J=Set2 Pts A(9), K=Set2 Pts B(10), M=TB Pts A(12), N=TB Pts B(13)
+  const iS1A = 6, iS1B = 7, iS2A = 9, iS2B = 10, iTBA = 12, iTBB = 13;
   let html = '';
   let hasRows = false;
 
@@ -1053,6 +1075,14 @@ function renderJogos(table) {
     const setsA   = cellStr(cells[iSETS_A_F]);
     const setsB   = cellStr(cells[iSETS_B_F]);
     const vencedor= cellStr(cells[iVENC_F]);
+
+    // Pontos individuais por set
+    const s1a = cellStr(cells[iS1A]);
+    const s1b = cellStr(cells[iS1B]);
+    const s2a = cellStr(cells[iS2A]);
+    const s2b = cellStr(cells[iS2B]);
+    const tba = cellStr(cells[iTBA]);
+    const tbb = cellStr(cells[iTBB]);
 
     // Formatar horário (pode vir como número decimal do Excel)
     let horarioFmt = horario;
@@ -1074,11 +1104,23 @@ function renderJogos(table) {
       statusText = `✓ ${vencedor}`;
     }
 
-    // Placar de sets
+    // Placar de sets (total)
     const hasSets = (setsA !== '' && setsA !== '0') || (setsB !== '' && setsB !== '0');
     const scoreHtml = hasSets
       ? `<div class="game-score"><span class="score">${setsA||0}</span><span class="sep">×</span><span class="score">${setsB||0}</span></div>`
       : `<div class="game-score" style="color:var(--muted)"><span style="font-size:1.2rem;letter-spacing:6px;">VS</span></div>`;
+
+    // Placar detalhado por set (25×20 / 25×18 / 15×10)
+    let setsDetail = '';
+    if (hasSets) {
+      const partes = [];
+      if (s1a !== '' || s1b !== '') partes.push(`${s1a||0}×${s1b||0}`);
+      if (s2a !== '' || s2b !== '') partes.push(`${s2a||0}×${s2b||0}`);
+      if (tba !== '' || tbb !== '') partes.push(`<em>${tba||0}×${tbb||0}</em>`);
+      if (partes.length > 0) {
+        setsDetail = `<div class="sets-detail">${partes.join(' / ')}</div>`;
+      }
+    }
 
     html += `
     <div class="game-card">
@@ -1087,7 +1129,10 @@ function renderJogos(table) {
         <span class="game-hour">${horarioFmt || '—:—'}</span>
       </div>
       <div class="game-team left">${eq1 || '—'}</div>
-      ${scoreHtml}
+      <div class="game-center">
+        ${scoreHtml}
+        ${setsDetail}
+      </div>
       <div class="game-team right">${eq2 || '—'}</div>
       <div class="game-status ${statusCls}">${statusText}</div>
     </div>`;
