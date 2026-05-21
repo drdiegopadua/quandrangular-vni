@@ -844,37 +844,70 @@ function renderClassificacao(table) {
 
   console.log('colIdx:', colIdx);
 
-  // Mapeamento de colunas da planilha (baseado na estrutura real)
-  // POS=C(2), EQUIPE=D(3), PTS=E(4), J=F(5), V=G(6), D=H(7), SG=I(8), SP=J(9), SETS+=K(10), SETS-=L(11), PTS+=M(12), PTS-=N(13)
-  function findCol(...names) {
+  // Estrutura FIXA da aba "classificacao" (conforme planilha):
+  // gviz retorna colunas a partir da col C da planilha (col A e B ficam fora do range ou vazias)
+  // Linha de dados: POS=col C(idx 0 no gviz), EQUIPE=D(1), PTS=E(2), J=F(3), V=G(4), D=H(5),
+  //                 SG=I(6), SP=J(7), SETS+=K(8), SETS-=L(9), PTS+=M(10), PTS-=N(11)
+  // Mas o gviz pode incluir colunas A e B como vazias, então usamos os labels para mapear.
+
+  // Primeiro tenta pelos labels; se não achar, usa fallback por posição
+  function findColExact(...names) {
     for (const n of names) {
       const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if (colIdx[k] !== undefined) return colIdx[k];
     }
-    for (const n of names) {
-      const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
-      const found = Object.keys(colIdx).find(key => key.includes(k));
-      if (found !== undefined) return colIdx[found];
-    }
     return -1;
   }
 
-  let iPOS    = findCol('POS','POSICAO','POSIÇÃO','#');
-  let iEQUIPE = findCol('EQUIPE','TIME','CLUBE','TEAM');
-  let iPTS    = findCol('PTS','PONTOS','PONT');
-  let iJ      = findCol('J','JG','JOGOS');
-  let iV      = findCol('V','VIT','VITORIAS','VITÓRIAS');
-  let iD      = findCol('D','DER','DERROTAS');
-  let iSG     = findCol('SG','SALDO DE SETS','SALDO SETS');
-  let iSP     = findCol('SP','SALDO DE PONTOS','SALDO PONTOS');
-  let iSP2    = findCol('SETS+','SETS GANHOS','SETS FEITOS');
-  let iSC     = findCol('SETS-','SETS PERDIDOS','SETS CONTRA');
-  let iPTS2   = findCol('PTS+','PONTOS FEITOS','PONTOS GANHOS');
-  let iPTS3   = findCol('PTS-','PONTOS CONTRA','PONTOS PERDIDOS');
+  // Índices pela label exata
+  let iPOS    = findColExact('POS','POSICAO','POSIÇÃO');
+  let iEQUIPE = findColExact('EQUIPE','TIME','CLUBE');
+  let iPTS    = findColExact('PTS','PONTOS');
+  let iJ      = findColExact('J','JG','JOGOS');
+  let iV      = findColExact('V','VIT','VITORIAS','VITORIAS');
+  let iD      = findColExact('D','DER','DERROTAS');
+  let iSG     = findColExact('SG');
+  let iSP     = findColExact('SP');
+  let iSP2    = findColExact('SETS+');
+  let iSC     = findColExact('SETS-');
+  let iPTS2   = findColExact('PTS+');
+  let iPTS3   = findColExact('PTS-');
+
+  // Fallback: se labels não foram encontrados, assume estrutura fixa da planilha
+  // O gviz da aba classificacao normalmente começa do col C da planilha
+  // Detecta o offset verificando onde começam os dados numéricos de POS
+  if (iPOS < 0 || iEQUIPE < 0) {
+    // Tenta detectar automaticamente a coluna POS procurando valor 1,2,3,4
+    const nCols = cols.length;
+    outer: for (let ci = 0; ci < nCols; ci++) {
+      for (const row of table.rows) {
+        const v = cellStr((row.c || [])[ci]);
+        if (v === '1') {
+          // Verifica se coluna seguinte tem texto de equipe
+          const nextV = cellStr((row.c || [])[ci + 1]);
+          if (nextV && isNaN(Number(nextV))) {
+            iPOS    = ci;
+            iEQUIPE = ci + 1;
+            iPTS    = ci + 2;
+            iJ      = ci + 3;
+            iV      = ci + 4;
+            iD      = ci + 5;
+            iSG     = ci + 6;
+            iSP     = ci + 7;
+            iSP2    = ci + 8;
+            iSC     = ci + 9;
+            iPTS2   = ci + 10;
+            iPTS3   = ci + 11;
+            break outer;
+          }
+        }
+      }
+    }
+  }
 
   console.log('Cols found:', {iPOS,iEQUIPE,iPTS,iJ,iV,iD,iSG,iSP});
 
-  // Filtrar apenas linhas com equipe e posição numérica válida
+  // Filtrar apenas linhas com equipe e posição numérica válida (1 a 20)
   const validRows = [];
   table.rows.forEach((row) => {
     const cells = row.c || [];
@@ -886,19 +919,12 @@ function renderClassificacao(table) {
     }
   });
 
-  // Se não encontrou com critério estrito, tenta só equipe não vazia
-  const rows = validRows.length > 0 ? validRows : table.rows
-    .filter(r => {
-      const cells = r.c || [];
-      const equipe = iEQUIPE >= 0 ? cellStr(cells[iEQUIPE]) : '';
-      return equipe && equipe.trim() !== '';
-    })
-    .map((r, i) => ({ cells: r.c || [], posNum: i + 1 }));
-
-  if (rows.length === 0) {
+  if (validRows.length === 0) {
     container.innerHTML = '<div class="loading">Aguardando dados da classificação...</div>';
     return;
   }
+
+  const rows = validRows;
 
   // Montar colunas visíveis
   const showCols = [
@@ -976,11 +1002,14 @@ function renderJogos(table) {
   console.log('JOGOS cols:', cols.map((c,i) => `${i}:${c.label}`));
 
   function findCol(...names) {
+    // Busca exata primeiro
     for (const n of names) {
       const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       if (colIdx[k] !== undefined) return colIdx[k];
     }
+    // Busca parcial: só se o nome de busca for suficientemente específico (>= 3 chars)
     for (const n of names) {
+      if (n.length < 3) continue;
       const k = n.toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
       const found = Object.keys(colIdx).find(key => key.includes(k));
       if (found !== undefined) return colIdx[found];
@@ -988,13 +1017,24 @@ function renderJogos(table) {
     return -1;
   }
 
-  const iJOGO    = findCol('JOGO','RODADA','#');
+  const iJOGO    = findCol('JOGO','RODADA');
   const iHORARIO = findCol('HORARIO','HORÁRIO','HORA');
   const iEQ1     = findCol('EQUIPE A','EQUIPE1','TIME A','TIME1','MANDANTE');
   const iEQ2     = findCol('EQUIPE B','EQUIPE2','TIME B','TIME2','VISITANTE');
   const iSETS_A  = findCol('SETS A','SETSA');
   const iSETS_B  = findCol('SETS B','SETSB');
   const iVENC    = findCol('VENCEDOR','WINNER','RESULTADO');
+
+  // Fallback por posição se labels não encontradas (estrutura fixa da planilha jogos)
+  // A=JOGO(0), B=DATA(1), C=HORÁRIO(2), D=LOCAL(3), E=EQUIPE A(4), F=EQUIPE B(5)
+  // ...P=SETS A(15), Q=SETS B(16), R=VENCEDOR(17)
+  const iJOGO_F    = iJOGO    >= 0 ? iJOGO    : 0;
+  const iHORARIO_F = iHORARIO >= 0 ? iHORARIO : 2;
+  const iEQ1_F     = iEQ1     >= 0 ? iEQ1     : 4;
+  const iEQ2_F     = iEQ2     >= 0 ? iEQ2     : 5;
+  const iSETS_A_F  = iSETS_A  >= 0 ? iSETS_A  : 15;
+  const iSETS_B_F  = iSETS_B  >= 0 ? iSETS_B  : 16;
+  const iVENC_F    = iVENC    >= 0 ? iVENC    : 17;
 
   // Pontuação por set: G,J,M = pts A; H,K,N = pts B
   // Vamos montar o placar como "G-H / J-K"
@@ -1003,16 +1043,16 @@ function renderJogos(table) {
 
   table.rows.forEach((row) => {
     const cells = row.c || [];
-    const eq1 = iEQ1 >= 0 ? cellStr(cells[iEQ1]) : '';
-    const eq2 = iEQ2 >= 0 ? cellStr(cells[iEQ2]) : '';
+    const eq1 = cellStr(cells[iEQ1_F]);
+    const eq2 = cellStr(cells[iEQ2_F]);
     if (!eq1 && !eq2) return;
     hasRows = true;
 
-    const jogo    = iJOGO    >= 0 ? cellStr(cells[iJOGO])    : '';
-    const horario = iHORARIO >= 0 ? cellStr(cells[iHORARIO]) : '';
-    const setsA   = iSETS_A  >= 0 ? cellStr(cells[iSETS_A])  : '';
-    const setsB   = iSETS_B  >= 0 ? cellStr(cells[iSETS_B])  : '';
-    const vencedor= iVENC    >= 0 ? cellStr(cells[iVENC])    : '';
+    const jogo    = cellStr(cells[iJOGO_F]);
+    const horario = cellStr(cells[iHORARIO_F]);
+    const setsA   = cellStr(cells[iSETS_A_F]);
+    const setsB   = cellStr(cells[iSETS_B_F]);
+    const vencedor= cellStr(cells[iVENC_F]);
 
     // Formatar horário (pode vir como número decimal do Excel)
     let horarioFmt = horario;
