@@ -754,8 +754,8 @@ footer{
 // CONFIG
 // ============================================
 const SHEET_ID       = '15xS1cLeBbLVoEiltimNHDFO17AnCxcG0S5zp02azR_8';
-const SHEET_JOGOS    = 'jogos';
-const SHEET_CLASS    = 'classificacao';
+const SHEET_JOGOS    = 'JOGOS';
+const SHEET_CLASS    = 'CLASSIFICAÇÃO';
 const REFRESH_SECS   = 30;
 
 let countdownVal     = REFRESH_SECS;
@@ -773,27 +773,8 @@ async function fetchSheet(sheetName) {
   return json.table;
 }
 
-// Fetch da classificação: tenta vários nomes possíveis para a aba
+// Fetch da classificação usando nome exato da aba
 async function fetchClassificacao() {
-  const nomes = ['classificacao','classificação','Classificacao','Classificação','CLASSIFICACAO','CLASSIFICAÇÃO'];
-  for (const nome of nomes) {
-    try {
-      const table = await fetchSheet(nome);
-      // Verifica se retornou dados de classificação (deve ter linha com POS 1-4 na col 0)
-      if (table && table.rows) {
-        for (const row of table.rows) {
-          const c = row.c || [];
-          const v = c[0] ? String(c[0].v ?? '').trim() : '';
-          const eq = c[1] ? String(c[1].v ?? c[1].f ?? '').trim() : '';
-          if ((v==='1'||v==='2') && eq !== '' && isNaN(Number(eq))) {
-            console.log('✅ Aba classificação encontrada com nome:', nome);
-            return table;
-          }
-        }
-      }
-    } catch(e) { /* tenta próximo */ }
-  }
-  // Fallback: retorna o que tiver
   return await fetchSheet(SHEET_CLASS);
 }
 
@@ -876,14 +857,15 @@ function renderClassificacao(table) {
 
   // Varre TODAS as linhas buscando as que têm POS numérico (1–4) na col 0
   // e EQUIPE (texto não-numérico) na col 1
+  // Ignora linha de critérios (col 0 vazio ou texto)
   const dataRows = [];
   for (const row of table.rows) {
     const c = row.c || [];
-    // Tenta col 0 como POS
     const posV = c[0] ? String(c[0].v ?? '').trim() : '';
     const eqV  = c[1] ? String(c[1].v ?? c[1].f ?? '').trim() : '';
     const posN = parseInt(posV);
-    if (posN >= 1 && posN <= 10 && eqV !== '' && isNaN(Number(eqV))) {
+    // Só aceita linha se POS for número entre 1 e 10 E equipe for texto não-numérico curto (nome de time)
+    if (posN >= 1 && posN <= 10 && eqV !== '' && isNaN(Number(eqV)) && eqV.length < 50) {
       dataRows.push({ c, posN });
     }
   }
