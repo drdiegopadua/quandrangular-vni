@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quadrangular de Voleibol · VNI</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Barlow:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --bg:#05080f;
+  --surface:#0a0e1a;
+  --card:#0f1525;
+  --border:rgba(255,255,255,0.07);
+  --accent:#f5a623;
+  --accent2:#e8431a;
+  --green:#2ecc71;
+  --red:#e74c3c;
+  --blue:#3498db;
+  --text:#edf0f7;
+  --muted:#5c6680;
+  --D:'Oswald',sans-serif;
+  --B:'Barlow',sans-serif;
+  --C:'Barlow Condensed',sans-serif;
+}
+
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:var(--B);overflow-x:hidden;}
+
+/* ── HERO ─────────────────────────────────────────────────────── */
+.hero{
+  position:relative;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:60px 24px 80px;
+  overflow:hidden;
+}
+
+/* Court lines background */
+.hero::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(90deg, transparent 49.5%, rgba(245,166,35,0.08) 49.5%, rgba(245,166,35,0.08) 50.5%, transparent 50.5%),
+    linear-gradient(0deg, transparent 49.5%, rgba(245,166,35,0.08) 49.5%, rgba(245,166,35,0.08) 50.5%, transparent 50.5%);
+  background-size:100% 100%;
+}
+
+/* Radial center circle */
+.hero::after{
+  content:'';
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:min(500px,90vw);
+  height:min(500px,90vw);
+  border-radius:50%;
+  border:1px solid rgba(245,166,35,0.07);
+  pointer-events:none;
+}
+
+/* Animated gradient glow */
+.hero-glow{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:800px;
+  height:500px;
+  background:radial-gradient(ellipse at center,rgba(245,166,35,0.08) 0%,rgba(232,67,26,0.04) 40%,transparent 70%);
+  animation:glow-pulse 4s ease-in-out infinite;
+  pointer-events:none;
+}
+@keyframes glow-pulse{
+  0%,100%{opacity:.6;transform:translate(-50%,-50%) scale(1);}
+  50%{opacity:1;transform:translate(-50%,-50%) scale(1.08);}
+}
+
+/* Diagonal stripes top */
+.hero-stripe{
+  position:absolute;
+  top:0;left:0;right:0;
+  height:6px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent),var(--accent2));
+}
+
+.hero-badge{
+  position:relative;
+  z-index:2;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 20px;
+  border-radius:999px;
+  border:1px solid rgba(245,166,35,0.4);
+  background:rgba(245,166,35,0.08);
+  font-family:var(--C);
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:28px;
+  animation:fadeUp .6s ease both;
+}
+.hero-badge-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  animation:pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot{
+  0%,100%{box-shadow:0 0 0 0 rgba(245,166,35,0.6);transform:scale(1);}
+  50%{box-shadow:0 0 0 6px rgba(245,166,35,0);transform:scale(1.2);}
+}
+
+.hero-event{
+  position:relative;
+  z-index:2;
+  font-family:var(--D);
+  font-size:clamp(1rem,3vw,1.3rem);
+  font-weight:300;
+  letter-spacing:8px;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-bottom:10px;
+  animation:fadeUp .6s .1s ease both;
+}
+
+.hero-title{
+  position:relative;
+  z-index:2;
+  font-family:var(--D);
+  font-size:clamp(3.5rem,10vw,8rem);
+  font-weight:700;
+  letter-spacing:2px;
+  line-height:.9;
+  text-transform:uppercase;
+  animation:fadeUp .6s .2s ease both;
+}
+.hero-title .line1{
+  display:block;
+  background:linear-gradient(135deg,#fff 0%,rgba(255,255,255,0.7) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.hero-title .line2{
+  display:block;
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.hero-sub{
+  position:relative;
+  z-index:2;
+  font-size:clamp(1.1rem,2.5vw,1.4rem);
+  font-weight:300;
+  letter-spacing:6px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,0.45);
+  margin-top:12px;
+  animation:fadeUp .6s .3s ease both;
+}
+
+.hero-divider{
+  position:relative;
+  z-index:2;
+  width:80px;
+  height:3px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));
+  border-radius:999px;
+  margin:32px auto;
+  animation:fadeUp .6s .4s ease both;
+}
+
+.hero-info{
+  position:relative;
+  z-index:2;
+  display:flex;
+  gap:40px;
+  justify-content:center;
+  flex-wrap:wrap;
+  animation:fadeUp .6s .5s ease both;
+}
+.hero-info-item{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+}
+.hero-info-label{
+  font-family:var(--C);
+  font-size:11px;
+  letter-spacing:3px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.hero-info-value{
+  font-family:var(--D);
+  font-size:1.4rem;
+  font-weight:600;
+  color:var(--text);
+}
+
+.hero-scroll{
+  position:absolute;
+  bottom:32px;
+  left:50%;
+  transform:translateX(-50%);
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  color:var(--muted);
+  font-size:11px;
+  font-family:var(--C);
+  letter-spacing:3px;
+  text-transform:uppercase;
+  animation:fadeUp .6s .8s ease both;
+}
+.hero-scroll-arrow{
+  width:24px;height:24px;
+  border-right:2px solid var(--accent);
+  border-bottom:2px solid var(--accent);
+  transform:rotate(45deg);
+  animation:bounce-down 1.5s ease-in-out infinite;
+}
+@keyframes bounce-down{
+  0%,100%{transform:rotate(45deg) translateY(0);}
+  50%{transform:rotate(45deg) translateY(6px);}
+}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* ── VOLLEYBALL DECORATION ────────────────────────────────────── */
+.volleyball-deco{
+  position:absolute;
+  z-index:1;
+  font-size:120px;
+  opacity:0.025;
+  pointer-events:none;
+  animation:float-ball 8s ease-in-out infinite;
+}
+.volleyball-deco.v1{top:10%;left:5%;animation-delay:0s;}
+.volleyball-deco.v2{bottom:15%;right:5%;animation-delay:3s;}
+@keyframes float-ball{
+  0%,100%{transform:translateY(0) rotate(0deg);}
+  50%{transform:translateY(-20px) rotate(15deg);}
+}
+
+/* ── NAV (sticky, below hero) ─────────────────────────────────── */
+nav.sticky-nav{
+  position:sticky;
+  top:0;
+  z-index:900;
+  background:rgba(10,14,26,0.95);
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:0;
+  padding:0 24px;
+}
+.nav-link{
+  padding:18px 24px;
+  font-family:var(--C);
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--muted);
+  text-decoration:none;
+  position:relative;
+  transition:color .2s;
+  cursor:pointer;
+  border:none;
+  background:none;
+}
+.nav-link::after{
+  content:'';
+  position:absolute;
+  bottom:0;left:24px;right:24px;
+  height:2px;
+  background:linear-gradient(90deg,var(--accent2),var(--accent));
+  border-radius:999px;
+  transform:scaleX(0);
+  transform-origin:left;
+  transition:transform .3s cubic-bezier(.22,1,.36,1);
+}
+.nav-link:hover,.nav-link.active{color:var(--text);}
+.nav-link:hover::after,.nav-link.active::after{transform:scaleX(1);}
+
+/* ── SECTION BASE ─────────────────────────────────────────────── */
+section{padding:80px 0 60px;}
+.container{width:min(1200px,100%);margin:auto;padding:0 24px;}
+
+.section-eyebrow{
+  font-family:var(--C);
+  font-size:12px;
+  letter-spacing:4px;
+  text-transform:uppercase;
+  color:var(--accent);
+  margin-bottom:10px;
+}
+.section-title{
+  font-family:var(--D);
+  font-size:clamp(2.2rem,5vw,3.5rem);
+  font-weight:700;
+  letter-spacing:1px;
+  margin-bottom:40px;
+  line-height:1;
+}
+.section-title span{
+  background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+/* ── REFRESH BADGE ────────────────────────────────────────────── */
+.refresh-wrapper{
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:20px;
+}
+.refresh-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding:8px 18px;
+  border-radius:999px;
+  border:1px solid rgba(245,166,35,0.3);
+  background:rgba(245,166,35,0.06);
+  font-family:var(--C);
+  font-size:11px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--accent);
+  position:relative;
+  overflow:hidden;
+}
+.refresh-badge::before{
+  content:'';
+  position:absolute;
+  left:0;top:0;bottom:0;
+  width:var(--progress,100%);
+  background:rgba(245,166,35,0.1);
+  transition:width 1s linear;
+  border-radius:999px;
+}
+.refresh-dot{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  animation:pulse-dot 2s ease-in-out infinite;
+  flex-shrink:0;
+}
+.refresh-icon{
+  font-size:14px;
+  transition:transform .3s;
+}
+.refresh-icon.spinning{animation:spin .6s linear;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.refresh-text{position:relative;z-index:1;}
+
+/* ── TABS ─────────────────────────────────────────────────────── */
+.tabs{
+  display:flex;
+  gap:12px;
+  margin-bottom:32px;
+  flex-wrap:wrap;
+}
+.tab-btn{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:12px 24px;
+  border-radius:8px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--muted);
+  font-family:var(--C);
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:.2s;
+}
+.tab-btn.active{
+  background:rgba(245,166,35,0.1);
+  border-color:var(--accent);
+  color:var(--text);
+  box-shadow:0 0 0 3px rgba(245,166,35,0.1);
+}
+.tab-btn:hover:not(.active){border-color:rgba(255,255,255,0.15);color:var(--text);}
+
+/* ── CLASSIFICATION TABLE ─────────────────────────────────────── */
+.class-table-wrap{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  overflow:hidden;
+  margin-bottom:50px;
+}
+.class-table-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:20px 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(245,166,35,0.04);
+}
+.class-table-header-icon{font-size:24px;}
+.class-table-header-title{
+  font-family:var(--D);
+  font-size:1.4rem;
+  letter-spacing:2px;
+  color:var(--accent);
+}
+
+table.class-table{width:100%;border-collapse:collapse;}
+table.class-table th{
+  background:rgba(255,255,255,0.02);
+  color:var(--muted);
+  font-family:var(--C);
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  padding:12px 14px;
+  text-align:center;
+  white-space:nowrap;
+}
+table.class-table th.left{text-align:left;}
+table.class-table td{
+  padding:14px 14px;
+  text-align:center;
+  border-top:1px solid var(--border);
+  font-size:14px;
+  transition:background .2s;
+}
+table.class-table td.team{text-align:left;font-weight:700;}
+table.class-table tbody tr:hover td{background:rgba(255,255,255,0.02);}
+
+.pos-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;height:28px;
+  border-radius:6px;
+  font-family:var(--D);
+  font-size:1rem;
+  font-weight:700;
+}
+.pos-1{background:rgba(255,215,0,0.15);color:#ffd700;}
+.pos-2{background:rgba(192,192,192,0.15);color:#c0c0c0;}
+.pos-3{background:rgba(205,127,50,0.15);color:#cd7f32;}
+.pos-other{background:rgba(255,255,255,0.05);color:var(--muted);}
+
+/* ── GAME CARDS ───────────────────────────────────────────────── */
+.games-list{display:flex;flex-direction:column;gap:14px;}
+
+.game-card{
+  display:grid;
+  grid-template-columns:100px 1fr auto 1fr 140px;
+  align-items:center;
+  gap:20px;
+  padding:24px 24px;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  transition:border-color .2s, box-shadow .2s;
+}
+.game-card:hover{
+  border-color:rgba(245,166,35,0.2);
+  box-shadow:0 4px 24px rgba(0,0,0,0.3);
+}
+
+.game-info{display:flex;flex-direction:column;gap:4px;}
+.game-round{
+  font-family:var(--C);
+  font-size:11px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--muted);
+}
+.game-hour{
+  font-family:var(--D);
+  font-size:1.6rem;
+  font-weight:600;
+  letter-spacing:1px;
+  color:var(--text);
+}
+
+.game-team{
+  font-family:var(--D);
+  font-size:clamp(1rem,2vw,1.5rem);
+  font-weight:700;
+  color:var(--text);
+}
+.game-team.left{text-align:right;}
+.game-team.right{text-align:left;}
+
+.game-score{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  font-family:var(--D);
+  color:var(--accent);
+  line-height:1;
+  min-width:120px;
+}
+.game-score .score{font-size:3rem;letter-spacing:1px;}
+.game-score .sep{font-size:1.5rem;opacity:0.5;}
+
+.game-status{
+  justify-self:end;
+  padding:8px 16px;
+  border-radius:999px;
+  font-family:var(--C);
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.status-done{
+  border:1px solid rgba(46,204,113,0.3);
+  background:rgba(46,204,113,0.08);
+  color:var(--green);
+}
+.status-scheduled{
+  border:1px solid rgba(52,152,219,0.3);
+  background:rgba(52,152,219,0.08);
+  color:var(--blue);
+}
+.status-live{
+  border:1px solid rgba(232,67,26,0.5);
+  background:rgba(232,67,26,0.1);
+  color:var(--accent2);
+  animation:live-pulse 1.5s ease-in-out infinite;
+}
+@keyframes live-pulse{
+  0%,100%{box-shadow:0 0 0 0 rgba(232,67,26,0.4);}
+  50%{box-shadow:0 0 0 6px rgba(232,67,26,0);}
+}
+
+/* ── LOADING / ERROR ──────────────────────────────────────────── */
+.loading{
+  text-align:center;
+  padding:60px 20px;
+  color:var(--muted);
+  font-family:var(--C);
+  font-size:13px;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:16px;
+}
+.loading-spinner{
+  width:36px;height:36px;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+.error-box{
+  background:rgba(231,76,60,0.08);
+  border:1px solid rgba(231,76,60,0.3);
+  color:#e74c3c;
+  padding:24px;
+  border-radius:12px;
+  font-family:monospace;
+  font-size:13px;
+  white-space:pre-wrap;
+  margin:20px 0;
+}
+
+/* ── HIDDEN ───────────────────────────────────────────────────── */
+.hidden{display:none!important;}
+
+/* ── FOOTER ───────────────────────────────────────────────────── */
+footer{
+  border-top:1px solid var(--border);
+  padding:40px 24px;
+  text-align:center;
+}
+.footer-logo{
+  font-family:var(--D);
+  font-size:2rem;
+  letter-spacing:4px;
+  color:var(--accent);
+  margin-bottom:8px;
+}
+.footer-copy{
+  color:var(--muted);
+  font-size:13px;
+  font-family:var(--C);
+  letter-spacing:1px;
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────── */
+@media(max-width:800px){
+  .game-card{
+    grid-template-columns:1fr;
+    text-align:center;
+    gap:12px;
+  }
+  .game-team.left,.game-team.right{text-align:center;}
+  .game-status{justify-self:center;}
+  .game-score{min-width:unset;}
+}
+@media(max-width:600px){
+  nav.sticky-nav{gap:0;padding:0 8px;}
+  .nav-link{padding:14px 12px;font-size:11px;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── HERO ──────────────────────────────────────────────────── -->
+<section class="hero" id="inicio">
+  <div class="hero-stripe"></div>
+  <div class="hero-glow"></div>
+  <div class="volleyball-deco v1">🏐</div>
+  <div class="volleyball-deco v2">🏐</div>
+
+  <div class="hero-badge">
+    <span class="hero-badge-dot"></span>
+    Evento Oficial · VNI
+  </div>
+
+  <div class="hero-event">Quadrangular de</div>
+  <h1 class="hero-title">
+    <span class="line1">Voleibol</span>
+    <span class="line2">VNI</span>
+  </h1>
+  <div class="hero-sub">Classificação em Tempo Real</div>
+
+  <div class="hero-divider"></div>
+
+  <div class="hero-info">
+    <div class="hero-info-item">
+      <span class="hero-info-label">Modalidade</span>
+      <span class="hero-info-value">Voleibol</span>
+    </div>
+    <div class="hero-info-item">
+      <span class="hero-info-label">Equipes</span>
+      <span class="hero-info-value">4 Times</span>
+    </div>
+    <div class="hero-info-item">
+      <span class="hero-info-label">Atualização</span>
+      <span class="hero-info-value">30 seg</span>
+    </div>
+  </div>
+
+  <a class="hero-scroll" href="#tabela">
+    <span>Ver Tabela</span>
+    <div class="hero-scroll-arrow"></div>
+  </a>
+</section>
+
+<!-- ── NAV STICKY ─────────────────────────────────────────────── -->
+<nav class="sticky-nav">
+  <button class="nav-link active" onclick="showTab('classificacao',this)">🏆 Classificação</button>
+  <button class="nav-link" onclick="showTab('jogos',this)">📅 Jogos</button>
+</nav>
+
+<!-- ── MAIN SECTION ────────────────────────────────────────────── -->
+<section id="tabela">
+<div class="container">
+
+  <div class="section-eyebrow">Ao Vivo</div>
+  <div class="section-title">Quadrangular <span>VNI</span></div>
+
+  <div class="refresh-wrapper">
+    <div class="refresh-badge" id="refreshBadge">
+      <div class="refresh-dot"></div>
+      <span class="refresh-icon" id="refreshIcon">↻</span>
+      <span class="refresh-text" id="refreshText">ATUALIZANDO...</span>
+    </div>
+  </div>
+
+  <!-- CLASSIFICAÇÃO -->
+  <div id="tabClassificacao">
+    <div class="class-table-wrap">
+      <div class="class-table-header">
+        <span class="class-table-header-icon">🏐</span>
+        <span class="class-table-header-title">Classificação Geral</span>
+      </div>
+      <div id="classTableBody">
+        <div class="loading">
+          <div class="loading-spinner"></div>
+          Carregando classificação...
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JOGOS -->
+  <div id="tabJogos" class="hidden">
+    <div class="games-list" id="jogosList">
+      <div class="loading">
+        <div class="loading-spinner"></div>
+        Carregando jogos...
+      </div>
+    </div>
+  </div>
+
+</div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-logo">VNI</div>
+  <div class="footer-copy">Quadrangular de Voleibol · Todos os direitos reservados</div>
+</footer>
+
+<script>
+// ============================================
+// CONFIG
+// ============================================
+const SHEET_ID       = '15xS1cLeBbLVoEiltimNHDFO17AnCxcG0S5zp02azR_8';
+const SHEET_JOGOS    = 'jogos';
+const SHEET_CLASS    = 'classificacao';
+const REFRESH_SECS   = 30;
+
+let countdownVal     = REFRESH_SECS;
+let countdownTimer   = null;
+let refreshInterval  = null;
+
+// ============================================
+// FETCH via gviz (sem API key, planilha pública)
+// ============================================
+async function fetchSheet(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+  const res  = await fetch(url);
+  const text = await res.text();
+  // gviz returns: google.visualization.Query.setResponse({...})
+  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\)/)[1]);
+  return json.table;
+}
+
+// helper: get cell value as string
+function cellStr(cell) {
+  if (!cell) return '';
+  if (cell.f != null) return cell.f;
+  if (cell.v != null) return String(cell.v);
+  return '';
+}
+
+// ============================================
+// BADGE
+// ============================================
+function updateBadge(secs, isRefreshing = false) {
+  const badge    = document.getElementById('refreshBadge');
+  const text     = document.getElementById('refreshText');
+  const icon     = document.getElementById('refreshIcon');
+  const progress = Math.round(((REFRESH_SECS - secs) / REFRESH_SECS) * 100);
+  badge.style.setProperty('--progress', progress + '%');
+  if (isRefreshing) {
+    text.textContent = 'ATUALIZANDO...';
+    icon.classList.add('spinning');
+    setTimeout(() => icon.classList.remove('spinning'), 700);
+  } else {
+    text.textContent = `AO VIVO · ${secs}S`;
+  }
+}
+
+function startCycle() {
+  stopCycle();
+  countdownVal = REFRESH_SECS;
+  updateBadge(countdownVal);
+
+  countdownTimer = setInterval(() => {
+    countdownVal--;
+    if (countdownVal < 0) countdownVal = REFRESH_SECS;
+    updateBadge(countdownVal);
+  }, 1000);
+
+  refreshInterval = setInterval(() => {
+    updateBadge(0, true);
+    loadAll();
+    countdownVal = REFRESH_SECS;
+  }, REFRESH_SECS * 1000);
+}
+
+function stopCycle() {
+  clearInterval(countdownTimer);
+  clearInterval(refreshInterval);
+}
+
+// ============================================
+// TAB SWITCH
+// ============================================
+function showTab(tab, btn) {
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tabClassificacao').classList.toggle('hidden', tab !== 'classificacao');
+  document.getElementById('tabJogos').classList.toggle('hidden', tab !== 'jogos');
+}
+
+// ============================================
+// RENDER CLASSIFICAÇÃO
+// ============================================
+function renderClassificacao(table) {
+  const container = document.getElementById('classTableBody');
+  if (!table || !table.rows || table.rows.length === 0) {
+    container.innerHTML = '<div class="loading">Nenhum dado encontrado na aba "classificacao".</div>';
+    return;
+  }
+
+  // Get headers from table.cols
+  const cols = table.cols || [];
+  // Build col index map by label (case-insensitive)
+  const colIdx = {};
+  cols.forEach((c, i) => {
+    if (c.label) colIdx[c.label.trim().toUpperCase()] = i;
+  });
+
+  // Detect columns — try common names
+  function findCol(...names) {
+    for (const n of names) {
+      const k = n.toUpperCase();
+      if (colIdx[k] !== undefined) return colIdx[k];
+    }
+    // fallback: search partial
+    for (const n of names) {
+      const k = n.toUpperCase();
+      const found = Object.keys(colIdx).find(key => key.includes(k));
+      if (found) return colIdx[found];
+    }
+    return -1;
+  }
+
+  const iPOS    = findCol('POS','#','POSIÇÃO','POSICAO');
+  const iEQUIPE = findCol('EQUIPE','TIME','CLUBE','TEAM');
+  const iJ      = findCol('J','JG','JOGOS');
+  const iV      = findCol('V','VIT','VITÓRIAS','VITORIAS');
+  const iD      = findCol('D','DER','DERROTAS');
+  const iSP     = findCol('SP','SETS P','SETS PROL');
+  const iSC     = findCol('SC','SETS C','SETS CONT');
+  const iPTS    = findCol('PTS','PONTOS','PONT','P');
+  const iSD     = findCol('SD','SALDO');
+
+  let html = `<div style="overflow-x:auto"><table class="class-table">
+    <thead><tr>
+      <th>Pos</th>
+      <th class="left">Equipe</th>`;
+
+  if (iJ >= 0)   html += '<th>J</th>';
+  if (iV >= 0)   html += '<th>V</th>';
+  if (iD >= 0)   html += '<th>D</th>';
+  if (iSP >= 0)  html += '<th>SP</th>';
+  if (iSC >= 0)  html += '<th>SC</th>';
+  if (iSD >= 0)  html += '<th>SD</th>';
+  if (iPTS >= 0) html += '<th>Pts</th>';
+
+  html += '</tr></thead><tbody>';
+
+  let pos = 0;
+  table.rows.forEach((row, idx) => {
+    const cells = row.c || [];
+    const equipe = iEQUIPE >= 0 ? cellStr(cells[iEQUIPE]) : '';
+    if (!equipe) return; // skip empty rows
+
+    pos++;
+    const posVal = iPOS >= 0 ? cellStr(cells[iPOS]) : String(pos);
+    const posNum = parseInt(posVal) || pos;
+
+    let posCls = 'pos-other';
+    if (posNum === 1) posCls = 'pos-1';
+    else if (posNum === 2) posCls = 'pos-2';
+    else if (posNum === 3) posCls = 'pos-3';
+
+    html += `<tr>
+      <td><span class="pos-badge ${posCls}">${posVal || pos}</span></td>
+      <td class="team">${equipe}</td>`;
+
+    if (iJ >= 0)   html += `<td>${cellStr(cells[iJ])   || '0'}</td>`;
+    if (iV >= 0)   html += `<td>${cellStr(cells[iV])   || '0'}</td>`;
+    if (iD >= 0)   html += `<td>${cellStr(cells[iD])   || '0'}</td>`;
+    if (iSP >= 0)  html += `<td>${cellStr(cells[iSP])  || '0'}</td>`;
+    if (iSC >= 0)  html += `<td>${cellStr(cells[iSC])  || '0'}</td>`;
+    if (iSD >= 0)  html += `<td>${cellStr(cells[iSD])  || '0'}</td>`;
+    if (iPTS >= 0) html += `<td><strong>${cellStr(cells[iPTS]) || '0'}</strong></td>`;
+
+    html += '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  container.innerHTML = html;
+}
+
+// ============================================
+// RENDER JOGOS
+// ============================================
+function renderJogos(table) {
+  const list = document.getElementById('jogosList');
+  if (!table || !table.rows || table.rows.length === 0) {
+    list.innerHTML = '<div class="loading">Nenhum dado encontrado na aba "jogos".</div>';
+    return;
+  }
+
+  const cols = table.cols || [];
+  const colIdx = {};
+  cols.forEach((c, i) => {
+    if (c.label) colIdx[c.label.trim().toUpperCase()] = i;
+  });
+
+  function findCol(...names) {
+    for (const n of names) {
+      const k = n.toUpperCase();
+      if (colIdx[k] !== undefined) return colIdx[k];
+    }
+    for (const n of names) {
+      const k = n.toUpperCase();
+      const found = Object.keys(colIdx).find(key => key.includes(k));
+      if (found) return colIdx[found];
+    }
+    return -1;
+  }
+
+  const iHORARIO  = findCol('HORÁRIO','HORARIO','HORA','TIME');
+  const iRODADA   = findCol('RODADA','JOGO','ROUND','PARTIDA');
+  const iEQ1      = findCol('EQUIPE 1','EQUIPE1','TIME 1','TIME1','CASA','MANDANTE');
+  const iEQ2      = findCol('EQUIPE 2','EQUIPE2','TIME 2','TIME2','VISITANTE','FORA');
+  const iSCORE1   = findCol('PLACAR 1','PLACAR1','SETS 1','SETS1','S1','SCORE1');
+  const iSCORE2   = findCol('PLACAR 2','PLACAR2','SETS 2','SETS2','S2','SCORE2');
+  const iSTATUS   = findCol('STATUS','RESULTADO','SITUAÇÃO','SITUACAO');
+
+  let html = '';
+  let hasRows = false;
+
+  table.rows.forEach((row) => {
+    const cells = row.c || [];
+    const eq1 = iEQ1 >= 0 ? cellStr(cells[iEQ1]) : '';
+    const eq2 = iEQ2 >= 0 ? cellStr(cells[iEQ2]) : '';
+    if (!eq1 && !eq2) return;
+    hasRows = true;
+
+    const horario = iHORARIO >= 0 ? cellStr(cells[iHORARIO]) : '';
+    const rodada  = iRODADA  >= 0 ? cellStr(cells[iRODADA])  : '';
+    const sc1     = iSCORE1  >= 0 ? cellStr(cells[iSCORE1])  : '-';
+    const sc2     = iSCORE2  >= 0 ? cellStr(cells[iSCORE2])  : '-';
+    const status  = iSTATUS  >= 0 ? cellStr(cells[iSTATUS])  : '';
+
+    // Determine status class
+    let statusCls  = 'status-scheduled';
+    let statusText = status || 'A REALIZAR';
+    const st = status.toUpperCase();
+    if (st.includes('FINAL') || st.includes('ENCERR') || st.includes('TERMINA') || st === 'FIM' || st === 'OK') {
+      statusCls = 'status-done';
+      statusText = statusText || 'FINALIZADO';
+    } else if (st.includes('VIVO') || st.includes('AO VIVO') || st.includes('LIVE') || st === 'EM JOGO') {
+      statusCls = 'status-live';
+      statusText = '🔴 AO VIVO';
+    }
+
+    // Score display
+    const showScore = (sc1 && sc1 !== '-' && sc1 !== '' && sc1 !== '0' && sc1 !== '0') ||
+                      (sc2 && sc2 !== '-' && sc2 !== '');
+    const scoreHtml = showScore
+      ? `<div class="game-score"><span class="score">${sc1}</span><span class="sep">×</span><span class="score">${sc2}</span></div>`
+      : `<div class="game-score" style="color:var(--muted)"><span style="font-size:1.2rem;letter-spacing:6px;">VS</span></div>`;
+
+    html += `
+    <div class="game-card">
+      <div class="game-info">
+        ${rodada ? `<span class="game-round">${rodada}</span>` : ''}
+        <span class="game-hour">${horario || '—:—'}</span>
+      </div>
+      <div class="game-team left">${eq1 || '—'}</div>
+      ${scoreHtml}
+      <div class="game-team right">${eq2 || '—'}</div>
+      <div class="game-status ${statusCls}">${statusText}</div>
+    </div>`;
+  });
+
+  list.innerHTML = hasRows ? html : '<div class="loading">Nenhum jogo encontrado.</div>';
+}
+
+// ============================================
+// LOAD ALL DATA
+// ============================================
+async function loadAll() {
+  try {
+    const [tableClass, tableJogos] = await Promise.all([
+      fetchSheet(SHEET_CLASS),
+      fetchSheet(SHEET_JOGOS)
+    ]);
+    renderClassificacao(tableClass);
+    renderJogos(tableJogos);
+  } catch (err) {
+    console.error('Erro ao carregar planilha:', err);
+    const errHtml = `<div class="error-box">❌ Erro ao carregar dados da planilha.\n\n${err.message}\n\nVerifique:\n• A planilha está pública (qualquer pessoa com o link)?\n• Os nomes das abas são exatamente: "jogos" e "classificacao"?</div>`;
+    document.getElementById('classTableBody').innerHTML = errHtml;
+    document.getElementById('jogosList').innerHTML = errHtml;
+  }
+}
+
+// ============================================
+// INIT
+// ============================================
+loadAll();
+startCycle();
+</script>
+</body>
+</html>
